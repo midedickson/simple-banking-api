@@ -6,6 +6,8 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
+	"github.com/midedickson/simple-banking-app/config"
+	"github.com/midedickson/simple-banking-app/routes"
 )
 
 func init() {
@@ -16,10 +18,10 @@ func init() {
 }
 
 func main() {
-	connectToDB()
-	autoMigrate()
+	config.ConnectToDB()
+	config.AutoMigrate()
 	r := mux.NewRouter()
-	connectRoutes(r)
+	routes.ConnectRoutes(r)
 	log.Println("Starting Simple Banking Server...")
 	log.Fatal(http.ListenAndServe(":8080", r))
 }

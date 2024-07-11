@@ -1,4 +1,4 @@
-package main
+package external
 
 import (
 	"bytes"
@@ -8,60 +8,17 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"strings"
+
+	"github.com/midedickson/simple-banking-app/dto"
+	mock_client "github.com/midedickson/simple-banking-app/mock"
+	"github.com/midedickson/simple-banking-app/models"
 )
 
 var ErrThirdPartyFailure = errors.New("third-party failure")
 
-type MockClient struct {
-	DoFunc func(req *http.Request) (*http.Response, error)
-}
-
-func (m *MockClient) Do(req *http.Request) (*http.Response, error) {
-	return m.DoFunc(req)
-}
-
-func createNewPOSTMockClient() *MockClient {
-	return &MockClient{
-		DoFunc: func(req *http.Request) (*http.Response, error) {
-			var forwardTransactionDTO forwardTransactionDTO
-			err := json.NewDecoder(req.Body).Decode(&forwardTransactionDTO)
-			if err != nil {
-				return &http.Response{StatusCode: http.StatusBadRequest}, err
-			}
-			externalTransactions = append(externalTransactions, &forwardTransactionDTO)
-			return &http.Response{StatusCode: http.StatusOK, Body: req.Body}, nil
-		},
-	}
-}
-
-func createNewGETMockClient() *MockClient {
-	return &MockClient{
-		DoFunc: func(req *http.Request) (*http.Response, error) {
-			urlPath := req.URL.Path
-			parts := strings.Split(urlPath, "/")
-			if len(parts) != 2 {
-				return &http.Response{StatusCode: http.StatusBadRequest}, errors.New("invalid request path")
-			}
-			reference := parts[1]
-			for _, transaction := range externalTransactions {
-				if transaction.Reference == reference {
-					data, err := json.Marshal(transaction)
-					if err != nil {
-						log.Printf("failed to marshal transaction data from third party: %s", err)
-						return &http.Response{StatusCode: http.StatusBadRequest}, err
-					}
-					return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(bytes.NewReader(data))}, nil
-				}
-			}
-			return &http.Response{StatusCode: http.StatusNotFound}, errors.New("transaction not found")
-		},
-	}
-}
-
-func fetchTransactionDetailsFromThirdParty(reference string) (*forwardTransactionDTO, error) {
-	var transaction *forwardTransactionDTO
-	client := createNewGETMockClient()
+func FetchTransactionDetailsFromThirdParty(reference string) (*dto.ForwardTransactionDTO, error) {
+	var transaction *dto.ForwardTransactionDTO
+	client := mock_client.CreateNewGETMockClient()
 	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("http://third-party-system.com/transactions/%s", reference), nil)
 	if err != nil {
 		log.Printf("failed to create request for third party: %s", err)
@@ -92,9 +49,9 @@ func fetchTransactionDetailsFromThirdParty(reference string) (*forwardTransactio
 	return transaction, nil
 }
 
-func forwardTransactionToThirdParty(transaction *Transaction) error {
-	client := createNewPOSTMockClient()
-	forwardTransactionDto := &forwardTransactionDTO{
+func ForwardTransactionToThirdParty(transaction *models.Transaction) error {
+	client := mock_client.CreateNewPOSTMockClient()
+	forwardTransactionDto := &dto.ForwardTransactionDTO{
 		Reference: transaction.Reference,
 		AccountID: transaction.AccountID,
 		Amount:    transaction.Amount,

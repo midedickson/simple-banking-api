@@ -1,4 +1,4 @@
-package main
+package repository
 
 import (
 	"fmt"
@@ -6,18 +6,21 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/midedickson/simple-banking-app/config"
+	"github.com/midedickson/simple-banking-app/dto"
+	"github.com/midedickson/simple-banking-app/models"
 	"gorm.io/gorm"
 )
 
-type repository struct {
+type Repository struct {
 	DB *gorm.DB
 }
 
-func newRepository() *repository {
-	return &repository{DB: DB}
+func NewRepository() *Repository {
+	return &Repository{DB: config.DB}
 }
 
-func (r *repository) generateTransactionReference() string {
+func (r *Repository) GenerateTransactionReference() string {
 	// Generate unique transaction reference
 	// Get the current time as Unix timestamp
 	timestamp := time.Now().UnixNano()
@@ -29,16 +32,16 @@ func (r *repository) generateTransactionReference() string {
 	transactionID := fmt.Sprintf("%s-%d-%d", "TRX", timestamp, randomNum)
 
 	// check if the transaction exists before returning final value
-	if existingTransaction := r.fetchTransactionDetailsByReference(transactionID); existingTransaction != nil {
-		return r.generateTransactionReference()
+	if existingTransaction := r.FetchTransactionDetailsByReference(transactionID); existingTransaction != nil {
+		return r.GenerateTransactionReference()
 	}
 	return transactionID
 }
 
-func (r *repository) findAccountById(userAccountId int) *UserAccount {
+func (r *Repository) FindAccountById(userAccountId int) *models.UserAccount {
 	// todo: implement logic to find the account based on UserAccountId
 	// iterate through the users slice and find the account with matching UserAccountId
-	for _, user := range users {
+	for _, user := range Users {
 		if user.AccountID == userAccountId {
 			return user
 		}
@@ -48,10 +51,10 @@ func (r *repository) findAccountById(userAccountId int) *UserAccount {
 	return nil
 }
 
-func (r *repository) newTransaction(createTransactionDTO *createTransactionDTO) (*Transaction, error) {
-	transaction := Transaction{
+func (r *Repository) NewTransaction(createTransactionDTO *dto.CreateTransactionDTO) (*models.Transaction, error) {
+	transaction := models.Transaction{
 		AccountID: createTransactionDTO.AccountID,
-		Reference: r.generateTransactionReference(),
+		Reference: r.GenerateTransactionReference(),
 		Amount:    createTransactionDTO.Amount,
 		Status:    "pending",
 		Direction: createTransactionDTO.Direction,
@@ -60,13 +63,13 @@ func (r *repository) newTransaction(createTransactionDTO *createTransactionDTO) 
 	return &transaction, r.DB.Create(&transaction).Error
 }
 
-func (r *repository) updateTransactionStatus(transaction *Transaction, status string) {
+func (r *Repository) UpdateTransactionStatus(transaction *models.Transaction, status string) {
 	transaction.Status = status
 	r.DB.Save(&transaction)
 }
 
-func (r *repository) fetchTransactionDetailsByReference(reference string) *Transaction {
-	var transaction Transaction
+func (r *Repository) FetchTransactionDetailsByReference(reference string) *models.Transaction {
+	var transaction models.Transaction
 	result := r.DB.Where("reference =?", reference).First(&transaction)
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {

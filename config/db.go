@@ -1,8 +1,9 @@
-package main
+package config
 
 import (
 	"log"
 
+	"github.com/midedickson/simple-banking-app/models"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -11,7 +12,7 @@ var (
 	DB *gorm.DB
 )
 
-func connectToDB() {
+func ConnectToDB() {
 	d, err := gorm.Open(sqlite.Open("db.sqlite"), &gorm.Config{})
 	if err != nil {
 		panic(err)
@@ -20,9 +21,9 @@ func connectToDB() {
 	DB = d
 }
 
-func autoMigrate() {
+func AutoMigrate() {
 	log.Println("Auto Migrating Models...")
-	err := DB.AutoMigrate(&Transaction{})
+	err := DB.AutoMigrate(&models.Transaction{})
 	if err != nil {
 		panic(err)
 	}
