@@ -8,6 +8,7 @@ import (
 	"github.com/midedickson/simple-banking-app/external"
 	"github.com/midedickson/simple-banking-app/repository"
 	"github.com/midedickson/simple-banking-app/utils"
+	"github.com/shopspring/decimal"
 )
 
 type controller struct {
@@ -25,7 +26,13 @@ func (c *controller) CreateTransaction(w http.ResponseWriter, r *http.Request) {
 		utils.Dispatch400Error(w, "Invalid request payload", err)
 		return
 	}
+	zero := decimal.NewFromInt(0)
+	amountToAdd := decimal.NewFromFloat(createTransactionDTO.Amount)
 
+	if amountToAdd.LessThanOrEqual(zero) {
+		utils.Dispatch400Error(w, "Invalid Amount", nil)
+		return
+	}
 	userAccount := c.repo.FindAccountById(createTransactionDTO.AccountID)
 	if userAccount == nil {
 		utils.Dispatch400Error(w, "Invalid account ID", nil)
@@ -37,7 +44,7 @@ func (c *controller) CreateTransaction(w http.ResponseWriter, r *http.Request) {
 		utils.Dispatch500Error(w, err)
 		return
 	}
-	// todo: send transaction to the third-party system
+	// send transaction to the third-party system
 	err = external.ForwardTransactionToThirdParty(transaction)
 	if err != nil {
 		c.repo.UpdateTransactionStatus(transaction, "failed")
