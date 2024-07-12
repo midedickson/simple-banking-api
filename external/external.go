@@ -16,6 +16,18 @@ import (
 
 var ErrThirdPartyFailure = errors.New("third-party failure")
 
+type External interface {
+	ForwardTransactionToThirdParty(transaction *models.Transaction) error
+}
+
+type TransactionExternal struct {
+	client *mock_client.MockClient
+}
+
+func NewTransactionExternal(client *mock_client.MockClient) *TransactionExternal {
+	return &TransactionExternal{client: client}
+}
+
 func FetchTransactionDetailsFromThirdParty(reference string) (*dto.ForwardTransactionDTO, error) {
 	var transaction *dto.ForwardTransactionDTO
 	client := mock_client.CreateNewGETMockClient()
@@ -49,7 +61,7 @@ func FetchTransactionDetailsFromThirdParty(reference string) (*dto.ForwardTransa
 	return transaction, nil
 }
 
-func ForwardTransactionToThirdParty(transaction *models.Transaction) error {
+func (e *TransactionExternal) ForwardTransactionToThirdParty(transaction *models.Transaction) error {
 	client := mock_client.CreateNewPOSTMockClient()
 	forwardTransactionDto := &dto.ForwardTransactionDTO{
 		Reference: transaction.Reference,

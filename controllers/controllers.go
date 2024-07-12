@@ -11,15 +11,16 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type controller struct {
-	repo *repository.Repository
+type Controller struct {
+	repo     repository.Repository
+	external external.External
 }
 
-func NewController(repo *repository.Repository) *controller {
-	return &controller{repo: repo}
+func NewController(repo repository.Repository, external external.External) *Controller {
+	return &Controller{repo: repo, external: external}
 }
 
-func (c *controller) CreateTransaction(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) CreateTransaction(w http.ResponseWriter, r *http.Request) {
 	var createTransactionDTO dto.CreateTransactionDTO
 	err := json.NewDecoder(r.Body).Decode(&createTransactionDTO)
 	if err != nil {
@@ -39,13 +40,13 @@ func (c *controller) CreateTransaction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	transaction, err := c.repo.NewTransaction(&createTransactionDTO)
+	transaction, err := c.repo.CreateTransaction(&createTransactionDTO)
 	if err != nil {
 		utils.Dispatch500Error(w, err)
 		return
 	}
 	// send transaction to the third-party system
-	err = external.ForwardTransactionToThirdParty(transaction)
+	err = c.external.ForwardTransactionToThirdParty(transaction)
 	if err != nil {
 		c.repo.UpdateTransactionStatus(transaction, "failed")
 		utils.Dispatch500Error(w, err)
@@ -65,8 +66,8 @@ func (c *controller) CreateTransaction(w http.ResponseWriter, r *http.Request) {
 
 	utils.Dispatch200(w, "Transaction created successfully", transaction)
 }
-func (c *controller) FetchTransactionDetails(w http.ResponseWriter, r *http.Request) {}
-func (c *controller) FetchUserAccountDetails(w http.ResponseWriter, r *http.Request) {}
-func (c *controller) Hello(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) FetchTransactionDetails(w http.ResponseWriter, r *http.Request) {}
+func (c *Controller) FetchUserAccountDetails(w http.ResponseWriter, r *http.Request) {}
+func (c *Controller) Hello(w http.ResponseWriter, r *http.Request) {
 	utils.Dispatch200(w, "hello, you have reached simple banking api", nil)
 }

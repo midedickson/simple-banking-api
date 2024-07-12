@@ -3,13 +3,14 @@ package repository
 import (
 	"github.com/midedickson/simple-banking-app/dto"
 	"github.com/midedickson/simple-banking-app/models"
+	"github.com/shopspring/decimal"
 )
 
 // fake db of users
 var Users []*models.UserAccount = []*models.UserAccount{
-	{AccountID: 1, Balance: 100},
-	{AccountID: 2, Balance: 300},
-	{AccountID: 3, Balance: 400},
+	{ID: 1, Balance: decimal.NewFromFloat(400.0)},
+	{ID: 2, Balance: decimal.NewFromFloat(400.0)},
+	{ID: 3, Balance: decimal.NewFromFloat(400.0)},
 }
 
 // fake db of external trasnactions
