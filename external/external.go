@@ -3,18 +3,16 @@ package external
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 
+	"github.com/midedickson/simple-banking-app/constants"
 	"github.com/midedickson/simple-banking-app/dto"
 	mock_client "github.com/midedickson/simple-banking-app/mock"
 	"github.com/midedickson/simple-banking-app/models"
 )
-
-var ErrThirdPartyFailure = errors.New("third-party failure")
 
 type External interface {
 	ForwardTransactionToThirdParty(transaction *models.Transaction) error
@@ -43,7 +41,7 @@ func FetchTransactionDetailsFromThirdParty(reference string) (*dto.ForwardTransa
 	}
 	if resp.StatusCode != http.StatusOK {
 		log.Printf("Failed to forward transaction to third party: %s", resp.Status)
-		return nil, ErrThirdPartyFailure
+		return nil, constants.ErrThirdPartyFailure
 	}
 	log.Printf("Transaction forwarded successfully to third party: %+v", transaction)
 	defer resp.Body.Close()
@@ -85,7 +83,7 @@ func (e *TransactionExternal) ForwardTransactionToThirdParty(transaction *models
 	}
 	if resp.StatusCode != http.StatusOK {
 		log.Printf("Failed to forward transaction to third party: %s", resp.Status)
-		return ErrThirdPartyFailure
+		return constants.ErrThirdPartyFailure
 	}
 	log.Printf("Transaction forwarded successfully to third party: %+v", transaction)
 	return nil

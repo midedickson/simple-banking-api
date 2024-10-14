@@ -50,7 +50,7 @@ func (r *StorageRepository) FindAccountById(userAccountId int) *models.UserAccou
 	return nil
 }
 
-func (r *StorageRepository) CreateTransaction(createTransactionDTO *dto.CreateTransactionDTO) (*models.Transaction, error) {
+func (r *StorageRepository) CreateTransaction(createTransactionDTO *dto.CreateDBTransactionDTO) (*models.Transaction, error) {
 	transaction := models.Transaction{
 		AccountID: createTransactionDTO.AccountID,
 		Reference: r.GenerateTransactionReference(),

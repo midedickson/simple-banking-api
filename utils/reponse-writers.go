@@ -21,6 +21,12 @@ func Dispatch400Error(w http.ResponseWriter, msg string, err any) {
 	w.Write(WriteError(msg, err))
 }
 
+func Dispatch409Error(w http.ResponseWriter, msg string, err any) {
+	AddDefaultHeaders(w)
+	w.WriteHeader(http.StatusConflict)
+	w.Write(WriteError(msg, err))
+}
+
 // 403 - forbidden request, incase of non-authorised request
 func Dispatch403Error(w http.ResponseWriter, msg string, err any) {
 	AddDefaultHeaders(w)

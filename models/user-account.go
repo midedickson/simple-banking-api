@@ -16,13 +16,15 @@ type UserAccount struct {
 	Balance decimal.Decimal `json:"balance"`
 }
 
-func (u *UserAccount) Credit(amount float64) {
+func (u *UserAccount) Credit(amount float64) error {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	log.Printf("Account Balance before credit: %v", u.Balance)
 	log.Printf("Crediting: %v", amount)
-	u.Balance.Add(decimal.NewFromFloat(amount))
+	u.Balance = u.Balance.Add(decimal.NewFromFloatWithExponent(amount, -2))
 	log.Printf("Account Balance after credit: %v", u.Balance)
+
+	return nil
 }
 
 func (u *UserAccount) Debit(amount float64) error {
@@ -30,11 +32,11 @@ func (u *UserAccount) Debit(amount float64) error {
 	defer u.mu.Unlock()
 	log.Printf("Account Balance before debit: %v", u.Balance)
 	log.Printf("Debiting: %v", amount)
-	if u.Balance.LessThan(decimal.NewFromFloat(amount)) {
+	if u.Balance.LessThan(decimal.NewFromFloatWithExponent(amount, -2)) {
 		log.Println("Debit Refused, Insufficient Funds")
 		return constants.ErrInsufficientFunds
 	}
-	u.Balance.Sub(decimal.NewFromFloat(amount))
+	u.Balance = u.Balance.Sub(decimal.NewFromFloatWithExponent(amount, -2))
 	log.Printf("Account Balance after debit: %v", u.Balance)
 	return nil
 }

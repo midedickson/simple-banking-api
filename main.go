@@ -9,6 +9,7 @@ import (
 	"github.com/midedickson/simple-banking-app/config"
 	"github.com/midedickson/simple-banking-app/controllers"
 	"github.com/midedickson/simple-banking-app/external"
+	"github.com/midedickson/simple-banking-app/idempotency"
 	mock_client "github.com/midedickson/simple-banking-app/mock"
 	"github.com/midedickson/simple-banking-app/repository"
 	"github.com/midedickson/simple-banking-app/routes"
@@ -28,7 +29,8 @@ func main() {
 	storageRepository := repository.NewStorageRepository(config.DB)
 	mockClient := mock_client.CreateNewPOSTMockClient()
 	external := external.NewTransactionExternal(mockClient)
-	controller := controllers.NewController(storageRepository, external)
+	idempotencyStore := idempotency.NewIdempotencyStore()
+	controller := controllers.NewController(storageRepository, external, idempotencyStore)
 	routes.ConnectRoutes(r, controller)
 	log.Println("Starting Simple Banking Server...")
 	log.Fatal(http.ListenAndServe(":8080", r))

@@ -7,7 +7,7 @@ import (
 
 type Repository interface {
 	GenerateTransactionReference() string
-	CreateTransaction(createTransactionDTO *dto.CreateTransactionDTO) (*models.Transaction, error)
+	CreateTransaction(createTransactionDTO *dto.CreateDBTransactionDTO) (*models.Transaction, error)
 	UpdateTransactionStatus(transaction *models.Transaction, status string) error
 	FetchTransactionDetailsByReference(reference string) *models.Transaction
 	FindAccountById(userAccountId int) *models.UserAccount
