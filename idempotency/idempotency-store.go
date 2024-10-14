@@ -1,5 +1,7 @@
 package idempotency
 
+import "sync"
+
 type IdempotencyStore interface {
 	CreateNewIdempotencyKey() (string, error)
 	CheckIdempotencyKeyStatus(key string) (string, error)
@@ -8,8 +10,9 @@ type IdempotencyStore interface {
 
 type KeyBasedIdempotencyStore struct {
 	keyTable map[string]string
+	mu       sync.Mutex
 }
 
 func NewIdempotencyStore() *KeyBasedIdempotencyStore {
-	return &KeyBasedIdempotencyStore{keyTable: make(map[string]string)}
+	return &KeyBasedIdempotencyStore{keyTable: make(map[string]string), mu: sync.Mutex{}}
 }

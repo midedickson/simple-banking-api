@@ -14,6 +14,8 @@ func (s *KeyBasedIdempotencyStore) generateIdempotencyKey() (string, error) {
 		return "", err
 	}
 	newStrKey := newUUIDKey.String()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if _, ok := s.keyTable[newStrKey]; ok {
 		return s.generateIdempotencyKey()
 	} else {
@@ -22,6 +24,8 @@ func (s *KeyBasedIdempotencyStore) generateIdempotencyKey() (string, error) {
 }
 
 func (s *KeyBasedIdempotencyStore) CreateNewIdempotencyKey() (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	key, err := s.generateIdempotencyKey()
 	if err != nil {
 		return "", err
@@ -31,10 +35,14 @@ func (s *KeyBasedIdempotencyStore) CreateNewIdempotencyKey() (string, error) {
 }
 
 func (s *KeyBasedIdempotencyStore) ConfirmIdempotencyKeyAsProcessed(key string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	delete(s.keyTable, key)
 }
 
 func (s *KeyBasedIdempotencyStore) CheckIdempotencyKeyStatus(key string) (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	status, ok := s.keyTable[key]
 	if !ok {
 		return "", fmt.Errorf("requested idempotency key for update %v not found", key)
@@ -43,6 +51,8 @@ func (s *KeyBasedIdempotencyStore) CheckIdempotencyKeyStatus(key string) (string
 }
 
 func (s *KeyBasedIdempotencyStore) UpdateIdempotencyKeyStatus(key string, status string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if _, ok := s.keyTable[key]; ok {
 		s.keyTable[key] = status
 	} else {
