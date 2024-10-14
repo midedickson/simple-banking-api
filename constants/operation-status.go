@@ -6,4 +6,7 @@ const (
 	PROCESSING = "processing"
 	CAN_RETRY  = "can_retry"
 	FAILED     = "failed"
+
+	DirectionDebit  = "debit"
+	DirectionCredit = "credit"
 )

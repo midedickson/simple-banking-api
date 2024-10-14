@@ -41,6 +41,13 @@ func Dispatch404Error(w http.ResponseWriter, msg string, err any) {
 	w.Write(WriteError(msg, err))
 }
 
+// 422 - unprocessable entity
+func Dispatch422Error(w http.ResponseWriter, msg string, err any) {
+	AddDefaultHeaders(w)
+	w.WriteHeader(http.StatusUnprocessableEntity)
+	w.Write(WriteError(msg, err))
+}
+
 // 200 - OK
 func Dispatch200(w http.ResponseWriter, msg string, data any) {
 	AddDefaultHeaders(w)

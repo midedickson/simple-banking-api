@@ -8,19 +8,21 @@ import (
 )
 
 func (s *KeyBasedIdempotencyStore) generateIdempotencyKey() (string, error) {
-	// generate an idempotency key
-	newUUIDKey, err := uuid.NewUUID()
-	if err != nil {
-		return "", err
-	}
-	newStrKey := newUUIDKey.String()
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if _, ok := s.keyTable[newStrKey]; ok {
-		return s.generateIdempotencyKey()
-	} else {
-		return newStrKey, nil
+	// generate an idempotency key
+	maxRetries := 10
+	for i := 0; i < maxRetries; i++ {
+		newUUIDKey, err := uuid.NewUUID()
+		if err != nil {
+			return "", err
+		}
+		newStrKey := newUUIDKey.String()
+		if _, ok := s.keyTable[newStrKey]; !ok {
+			return newStrKey, nil
+		}
 	}
+	return "", fmt.Errorf("failed to generate unique idempotency key after %d attempts", maxRetries)
 }
 
 func (s *KeyBasedIdempotencyStore) CreateNewIdempotencyKey() (string, error) {
@@ -45,7 +47,7 @@ func (s *KeyBasedIdempotencyStore) CheckIdempotencyKeyStatus(key string) (string
 	defer s.mu.Unlock()
 	status, ok := s.keyTable[key]
 	if !ok {
-		return "", fmt.Errorf("requested idempotency key for update %v not found", key)
+		return "", fmt.Errorf("requested idempotency key %v not found", key)
 	}
 	return status, nil
 }

@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
-	"log"
+	"errors"
 	"net/http"
 
 	"github.com/midedickson/simple-banking-app/constants"
@@ -50,7 +50,7 @@ func (c *Controller) CreateCreditTransaction(w http.ResponseWriter, r *http.Requ
 		utils.Dispatch409Error(w, "A similar is already being processed, please wait to get the a feedback and try again later if it doesn't work.", status)
 		return
 	case constants.FAILED:
-		utils.Dispatch409Error(w, "A similar transaction has failed, please try again.", status)
+		utils.Dispatch500Error(w, errors.New("a similar transaction has failed, please try again"))
 		return
 	}
 	var createTransactionDTO dto.CreateTransactionDTO
@@ -79,7 +79,7 @@ func (c *Controller) CreateCreditTransaction(w http.ResponseWriter, r *http.Requ
 	createDBTransactionDTO := &dto.CreateDBTransactionDTO{
 		AccountID: createTransactionDTO.AccountID,
 		Amount:    createTransactionDTO.Amount,
-		Direction: "credit",
+		Direction: constants.DirectionCredit,
 	}
 
 	transaction, err := c.repo.CreateTransaction(createDBTransactionDTO)
@@ -91,9 +91,8 @@ func (c *Controller) CreateCreditTransaction(w http.ResponseWriter, r *http.Requ
 	// send transaction to the third-party system
 	err = c.external.ForwardTransactionToThirdParty(transaction)
 	if err != nil {
-		log.Println(err.Error())
 		c.idempotencyStore.UpdateIdempotencyKeyStatus(key, constants.FAILED)
-		c.repo.UpdateTransactionStatus(transaction, "failed")
+		c.repo.UpdateTransactionStatus(transaction, constants.FAILED)
 		utils.Dispatch500Error(w, err)
 		return
 	}
@@ -101,25 +100,22 @@ func (c *Controller) CreateCreditTransaction(w http.ResponseWriter, r *http.Requ
 	err = userAccount.Credit(transaction.Amount)
 	if err != nil {
 		c.idempotencyStore.UpdateIdempotencyKeyStatus(key, constants.FAILED)
-		c.repo.UpdateTransactionStatus(transaction, "failed")
+		c.repo.UpdateTransactionStatus(transaction, constants.FAILED)
 		utils.Dispatch500Error(w, err)
 		return
 	}
 	c.idempotencyStore.UpdateIdempotencyKeyStatus(key, constants.SUCCESS)
-	c.repo.UpdateTransactionStatus(transaction, "success")
+	c.repo.UpdateTransactionStatus(transaction, constants.SUCCESS)
 
 	utils.Dispatch200(w, "Transaction created successfully", transaction)
 }
 
 func (c *Controller) CreateDebitTransaction(w http.ResponseWriter, r *http.Request) {
 	key := r.Header.Get("X-Idempotency-Key")
-	if key == "" {
-		utils.Dispatch400Error(w, "Idempotency Key is required", nil)
-		return
-	}
+
 	status, err := c.idempotencyStore.CheckIdempotencyKeyStatus(key)
 	if err != nil {
-		utils.Dispatch400Error(w, "Idempotency Key is required", nil)
+		utils.Dispatch422Error(w, "Invalid or missing Idempotency Key", nil)
 		return
 	}
 	switch status {
@@ -129,7 +125,7 @@ func (c *Controller) CreateDebitTransaction(w http.ResponseWriter, r *http.Reque
 	case constants.WAITING:
 		c.idempotencyStore.UpdateIdempotencyKeyStatus(key, constants.PROCESSING)
 	case constants.PROCESSING:
-		utils.Dispatch409Error(w, "A similar is already being processed, please wait to get the a feedback and try again later if it doesn't work.", status)
+		utils.Dispatch409Error(w, "A similar transaction is already being processed, please wait to get the a feedback and try again later if it doesn't work.", status)
 		return
 	case constants.FAILED:
 		utils.Dispatch409Error(w, "A similar transaction has failed, please try again.", status)
@@ -160,7 +156,7 @@ func (c *Controller) CreateDebitTransaction(w http.ResponseWriter, r *http.Reque
 	createDBTransactionDTO := &dto.CreateDBTransactionDTO{
 		AccountID: createTransactionDTO.AccountID,
 		Amount:    createTransactionDTO.Amount,
-		Direction: "debit",
+		Direction: constants.DirectionDebit,
 	}
 
 	transaction, err := c.repo.CreateTransaction(createDBTransactionDTO)
@@ -172,19 +168,19 @@ func (c *Controller) CreateDebitTransaction(w http.ResponseWriter, r *http.Reque
 	err = c.external.ForwardTransactionToThirdParty(transaction)
 	if err != nil {
 		c.idempotencyStore.UpdateIdempotencyKeyStatus(key, constants.FAILED)
-		c.repo.UpdateTransactionStatus(transaction, "failed")
+		c.repo.UpdateTransactionStatus(transaction, constants.FAILED)
 		utils.Dispatch500Error(w, err)
 		return
 	}
 	err = userAccount.Debit(transaction.Amount)
 	if err != nil {
 		c.idempotencyStore.UpdateIdempotencyKeyStatus(key, constants.FAILED)
-		c.repo.UpdateTransactionStatus(transaction, "failed")
+		c.repo.UpdateTransactionStatus(transaction, constants.FAILED)
 		utils.Dispatch400Error(w, "Insufficient funds", err)
 		return
 	}
 	c.idempotencyStore.UpdateIdempotencyKeyStatus(key, constants.SUCCESS)
-	c.repo.UpdateTransactionStatus(transaction, "success")
+	c.repo.UpdateTransactionStatus(transaction, constants.SUCCESS)
 
 	utils.Dispatch200(w, "Transaction created successfully", transaction)
 }
